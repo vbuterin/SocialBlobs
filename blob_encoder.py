@@ -22,6 +22,15 @@ from data_signer import aggregate_signatures
 MessageTuple = Tuple[bytes | str, int, bytes]
 
 
+def signing_payload(nonce: int, content: bytes) -> bytes:
+    """Build the signing payload: nonce (8 bytes big-endian) || content.
+
+    BLS signatures must cover the nonce to prevent a blob submitter from
+    tampering with message ordering.  See issue #2.
+    """
+    return nonce.to_bytes(8, "big") + content
+
+
 def _parse_sender(sender: bytes | str) -> bytes:
     if isinstance(sender, str):
         if not sender.startswith("0x"):
@@ -82,7 +91,7 @@ if __name__ == "__main__":
         b"the quick brown fox jumps over the yellow dog"
     ]
     signers  = [Signer.generate() for _ in range(3)]
-    sigs     = [s.sign(c) for s, c in zip(signers, contents)]
+    sigs     = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
 
     blob = encode_blob(list(zip(senders, nonces, contents)), sigs, lambda x: x)
     print(f"Generated blob: {len(blob)} bytes")

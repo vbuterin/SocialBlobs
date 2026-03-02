@@ -1,0 +1,17 @@
+[project]
+name = "socialblobs"
+version = "0.1.0"
+description = "Blob-authenticated messaging (ERC-8180) — reference implementation"
+requires-python = ">=3.10"
+license = {text = "CC0-1.0"}
+dependencies = [
+    "py_ecc>=7.0.0",
+    "web3>=7.0.0",
+    "eth-tester[py-evm]>=0.12.0b1",
+    "vyper>=0.4.3",
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

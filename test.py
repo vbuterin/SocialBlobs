@@ -15,7 +15,7 @@ from web3.providers.eth_tester import EthereumTesterProvider
 from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
-from blob_encoder import encode_blob
+from blob_encoder import encode_blob, signing_payload
 from bpe_encode import deploy_decoder, build_10bit_dict_from_corpus, encode_msg
 
 
@@ -93,15 +93,15 @@ msg_contents = [
     b"without going through a financial institution"
 ]
 n = len(msg_contents)
+nonces: List[int] = list(range(n))
 
 signers   = [Signer.generate() for _ in range(n)]
-sigs      = [s.sign(m) for s, m in zip(signers, msg_contents)]
+sigs      = [s.sign(signing_payload(nc, m)) for s, nc, m in zip(signers, nonces, msg_contents)]
 agg_sig   = aggregate_signatures(sigs)
 
 # Each BLS signer uses a distinct Ethereum account so their public keys are
 # stored at different addresses in the registry mapping.
 signer_accounts = accounts[1:n + 1]
-nonces: List[int] = list(range(n))
 message_tuples: List[Tuple[str, int, bytes]] = list(
     zip(signer_accounts, nonces, msg_contents)
 )
@@ -154,7 +154,7 @@ for msg in msg_contents:
 # ---------------------------------------------------------------------------
 
 owners   = list(signer_accounts)
-messages = list(msg_contents)
+messages = [signing_payload(n, m) for n, m in zip(nonces, msg_contents)]
 
 assert registry.functions.verifyAggregated(owners, messages, agg_sig).call(), \
     "verifyAggregated rejected a valid aggregate signature"
@@ -170,7 +170,7 @@ assert not bad_result, "verifyAggregated accepted a tampered signature"
 print("✅ Tampered signature correctly rejected")
 
 # Negative check: wrong message must be rejected.
-wrong_messages = [b"wrong message"] + messages[1:]
+wrong_messages = [signing_payload(0, b"wrong message")] + messages[1:]
 try:
     wrong_result = registry.functions.verifyAggregated(owners, wrong_messages, agg_sig).call()
 except Exception:
