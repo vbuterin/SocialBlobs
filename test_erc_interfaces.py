@@ -10,7 +10,7 @@ from web3 import Web3
 from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
-from blob_encoder import encode_blob
+from blob_encoder import encode_blob, signing_payload
 from bpe_encode import build_10bit_dict_from_corpus, encode_msg
 
 
@@ -144,7 +144,7 @@ class TestRegisterCalldataBatch:
         compressor = lambda msg: encode_msg(msg, compression)
         signer = Signer.generate()
         content = b"test message"
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(0, content))
         blob = encode_blob([(deployer, 0, content)], [sig], compressor)
 
         tx = bam_core.functions.registerCalldataBatch(
@@ -163,7 +163,7 @@ class TestRegisterCalldataBatch:
         compressor = lambda msg: encode_msg(msg, compression)
         signer = Signer.generate()
         content = b"another test"
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(1, content))
         blob = encode_blob([(deployer, 1, content)], [sig], compressor)
 
         content_hash = Web3.keccak(blob)

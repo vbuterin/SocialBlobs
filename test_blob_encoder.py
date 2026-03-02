@@ -13,7 +13,7 @@ import struct
 import pytest
 
 from data_signer import Signer, aggregate_signatures
-from blob_encoder import encode_blob, _parse_sender
+from blob_encoder import encode_blob, signing_payload, _parse_sender
 from bpe_encode import build_10bit_dict_from_corpus, encode_msg
 
 
@@ -74,9 +74,10 @@ class TestBlobStructure:
     def test_message_count_header(self, compressor):
         signers = [Signer.generate() for _ in range(3)]
         senders = ["0x" + os.urandom(20).hex() for _ in range(3)]
+        nonces = [0, 1, 2]
         contents = [b"hello", b"world", b"test"]
-        sigs = [s.sign(c) for s, c in zip(signers, contents)]
-        messages = list(zip(senders, [0, 1, 2], contents))
+        sigs = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
+        messages = list(zip(senders, nonces, contents))
         blob = encode_blob(messages, sigs, compressor)
 
         n = struct.unpack("!H", blob[:2])[0]
@@ -85,9 +86,10 @@ class TestBlobStructure:
     def test_trailing_signature_256_bytes(self, compressor):
         signers = [Signer.generate() for _ in range(2)]
         senders = ["0x" + os.urandom(20).hex() for _ in range(2)]
+        nonces = [0, 1]
         contents = [b"hello", b"world"]
-        sigs = [s.sign(c) for s, c in zip(signers, contents)]
-        messages = list(zip(senders, [0, 1], contents))
+        sigs = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
+        messages = list(zip(senders, nonces, contents))
         blob = encode_blob(messages, sigs, compressor)
 
         agg_sig = aggregate_signatures(sigs)
@@ -96,9 +98,10 @@ class TestBlobStructure:
     def test_offsets_are_valid(self, compressor):
         signers = [Signer.generate() for _ in range(3)]
         senders = ["0x" + os.urandom(20).hex() for _ in range(3)]
+        nonces = [0, 1, 2]
         contents = [b"hello", b"world", b"test"]
-        sigs = [s.sign(c) for s, c in zip(signers, contents)]
-        messages = list(zip(senders, [0, 1, 2], contents))
+        sigs = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
+        messages = list(zip(senders, nonces, contents))
         blob = encode_blob(messages, sigs, compressor)
 
         n = struct.unpack("!H", blob[:2])[0]
@@ -119,7 +122,7 @@ class TestBlobStructure:
         sender_hex = "0x" + sender_bytes.hex()
         signer = Signer.generate()
         content = b"hello"
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(0, content))
         blob = encode_blob([(sender_hex, 0, content)], [sig], compressor)
 
         # First message starts at offset 4 (2 bytes N + 2 bytes offset)
@@ -131,7 +134,7 @@ class TestBlobStructure:
         signer = Signer.generate()
         nonce = 42
         content = b"test"
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(nonce, content))
         blob = encode_blob([(sender, nonce, content)], [sig], compressor)
 
         offset = struct.unpack("!H", blob[2:4])[0]
@@ -147,7 +150,7 @@ class TestBlobEdgeCases:
         signer = Signer.generate()
         sender = "0x" + os.urandom(20).hex()
         content = b"single"
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(0, content))
         blob = encode_blob([(sender, 0, content)], [sig], compressor)
 
         n = struct.unpack("!H", blob[:2])[0]
@@ -158,7 +161,7 @@ class TestBlobEdgeCases:
         """Empty message content should encode without error."""
         signer = Signer.generate()
         sender = "0x" + os.urandom(20).hex()
-        sig = signer.sign(b"")
+        sig = signer.sign(signing_payload(0, b""))
         blob = encode_blob([(sender, 0, b"")], [sig], compressor)
         assert len(blob) >= 256 + 4 + 28  # sig + header + sender+nonce
 
@@ -166,21 +169,21 @@ class TestBlobEdgeCases:
         signer = Signer.generate()
         sender = "0x" + os.urandom(20).hex()
         nonce = (1 << 64) - 1
-        sig = signer.sign(b"test")
+        sig = signer.sign(signing_payload(nonce, b"test"))
         blob = encode_blob([(sender, nonce, b"test")], [sig], compressor)
         assert len(blob) > 256
 
     def test_nonce_negative_raises(self, compressor):
         signer = Signer.generate()
         sender = "0x" + os.urandom(20).hex()
-        sig = signer.sign(b"test")
+        sig = signer.sign(signing_payload(0, b"test"))
         with pytest.raises(ValueError, match="nonce"):
             encode_blob([(sender, -1, b"test")], [sig], compressor)
 
     def test_nonce_too_large_raises(self, compressor):
         signer = Signer.generate()
         sender = "0x" + os.urandom(20).hex()
-        sig = signer.sign(b"test")
+        sig = signer.sign(signing_payload(0, b"test"))
         with pytest.raises(ValueError, match="nonce"):
             encode_blob([(sender, 1 << 64, b"test")], [sig], compressor)
 
@@ -195,7 +198,7 @@ class TestBlobEdgeCases:
         signer = Signer.generate()
         sender = "0x" + os.urandom(20).hex()
         content = b"hello"
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(0, content))
         blob = encode_blob([(sender, 0, content)], [sig], identity_compressor)
 
         offset = struct.unpack("!H", blob[2:4])[0]
@@ -207,7 +210,7 @@ class TestBlobEdgeCases:
         signer = Signer.generate()
         sender = "0x" + os.urandom(20).hex()
         content = b"the quick brown fox jumps over the lazy dog"
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(0, content))
         blob_comp = encode_blob([(sender, 0, content)], [sig], compressor)
         blob_raw = encode_blob([(sender, 0, content)], [sig], identity_compressor)
         # Compressed and raw blobs should differ (different body sizes)

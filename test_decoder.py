@@ -13,7 +13,7 @@ import pytest
 from web3 import Web3
 
 from data_signer import Signer, aggregate_signatures
-from blob_encoder import encode_blob
+from blob_encoder import encode_blob, signing_payload
 from bpe_encode import encode_msg
 
 
@@ -23,7 +23,7 @@ from bpe_encode import encode_msg
 def make_blob(senders, nonces, contents, compressor):
     """Build a blob from senders (hex), nonces, contents, and BLS sigs."""
     signers = [Signer.generate() for _ in range(len(contents))]
-    sigs = [s.sign(c) for s, c in zip(signers, contents)]
+    sigs = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
     messages = list(zip(senders, nonces, contents))
     blob = encode_blob(messages, sigs, compressor)
     return blob, signers, sigs

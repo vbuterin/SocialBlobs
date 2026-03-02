@@ -8,6 +8,7 @@ import pytest
 from web3 import Web3
 
 from data_signer import Signer, aggregate_signatures
+from blob_encoder import signing_payload
 
 
 # ── Scheme metadata ─────────────────────────────────────────────────────────
@@ -161,7 +162,9 @@ class TestVerifyAggregated:
         self.registry = registry
         self.signers = [Signer.generate() for _ in range(3)]
         self.accts = accounts[7:10]
-        self.msgs = [b"message one", b"message two", b"message three"]
+        self.nonces = [0, 1, 2]
+        self.contents = [b"message one", b"message two", b"message three"]
+        self.msgs = [signing_payload(n, c) for n, c in zip(self.nonces, self.contents)]
 
         for signer, acct in zip(self.signers, self.accts):
             try:
@@ -192,7 +195,7 @@ class TestVerifyAggregated:
         assert result is False
 
     def test_wrong_message_fails(self):
-        wrong_msgs = [b"wrong"] + list(self.msgs[1:])
+        wrong_msgs = [signing_payload(0, b"wrong")] + list(self.msgs[1:])
         try:
             result = self.registry.functions.verifyAggregated(
                 list(self.accts), wrong_msgs, self.agg_sig

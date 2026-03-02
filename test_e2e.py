@@ -8,7 +8,7 @@ import pytest
 from web3 import Web3
 
 from data_signer import Signer, aggregate_signatures
-from blob_encoder import encode_blob
+from blob_encoder import encode_blob, signing_payload
 from bpe_encode import encode_msg
 
 
@@ -32,10 +32,10 @@ class TestFullPipeline:
             b"without going through a financial institution",
         ]
         n = len(contents)
-        signers = [Signer.generate() for _ in range(n)]
-        sigs = [s.sign(c) for s, c in zip(signers, contents)]
-        agg_sig = aggregate_signatures(sigs)
         nonces = list(range(n))
+        signers = [Signer.generate() for _ in range(n)]
+        sigs = [s.sign(signing_payload(nc, c)) for s, nc, c in zip(signers, nonces, contents)]
+        agg_sig = aggregate_signatures(sigs)
 
         # Compress + encode
         compressor = lambda msg: encode_msg(msg, token_to_code)
@@ -70,9 +70,9 @@ class TestFullPipeline:
         assert decoded_msgs == message_tuples
         assert decoded_sig == agg_sig
 
-        # Verify aggregate signature
+        # Verify aggregate signature (messages = nonce || content per issue #2)
         owners = list(signer_accounts)
-        messages = list(contents)
+        messages = [signing_payload(nc, c) for nc, c in zip(nonces, contents)]
         assert registry.functions.verifyAggregated(
             owners, messages, agg_sig
         ).call() is True
@@ -85,7 +85,7 @@ class TestFullPipeline:
         acct = accounts[4]
         content = b"single message test"
         signer = Signer.generate()
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(0, content))
         agg_sig = aggregate_signatures([sig])
         compressor = lambda msg: encode_msg(msg, token_to_code)
 
@@ -117,7 +117,7 @@ class TestCompressionIntegration:
         acct = accounts[1]
         content = b"the quick brown fox jumps over the lazy dog " * 3
         signer = Signer.generate()
-        sig = signer.sign(content)
+        sig = signer.sign(signing_payload(0, content))
 
         compressor = lambda msg: encode_msg(msg, token_to_code)
         blob_comp = encode_blob([(acct, 0, content)], [sig], compressor)
@@ -149,9 +149,10 @@ class TestNegativeCases:
     ):
         """Bit-flipped aggregate signature must be rejected."""
         accts = accounts[5:7]
+        nonces = [0, 1]
         contents = [b"msg1", b"msg2"]
         signers = [Signer.generate() for _ in range(2)]
-        sigs = [s.sign(c) for s, c in zip(signers, contents)]
+        sigs = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
         agg_sig = aggregate_signatures(sigs)
 
         for signer, acct in zip(signers, accts):
@@ -163,10 +164,11 @@ class TestNegativeCases:
             except Exception:
                 pass
 
+        messages = [signing_payload(n, c) for n, c in zip(nonces, contents)]
         bad_sig = bytes([agg_sig[0] ^ 0xFF]) + agg_sig[1:]
         try:
             result = registry.functions.verifyAggregated(
-                list(accts), list(contents), bad_sig
+                list(accts), messages, bad_sig
             ).call()
         except Exception:
             result = False
@@ -177,9 +179,10 @@ class TestNegativeCases:
     ):
         """Wrong message content must cause verification failure."""
         accts = accounts[5:7]
+        nonces = [0, 1]
         contents = [b"msg1", b"msg2"]
         signers = [Signer.generate() for _ in range(2)]
-        sigs = [s.sign(c) for s, c in zip(signers, contents)]
+        sigs = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
         agg_sig = aggregate_signatures(sigs)
 
         for signer, acct in zip(signers, accts):
@@ -191,7 +194,8 @@ class TestNegativeCases:
             except Exception:
                 pass
 
-        wrong = [b"wrong"] + list(contents[1:])
+        messages = [signing_payload(n, c) for n, c in zip(nonces, contents)]
+        wrong = [signing_payload(0, b"wrong")] + messages[1:]
         try:
             result = registry.functions.verifyAggregated(
                 list(accts), wrong, agg_sig
@@ -205,9 +209,10 @@ class TestNegativeCases:
     ):
         """Decoded messages should verify against the decoded signature."""
         accts = accounts[5:7]
+        nonces = [0, 1]
         contents = [b"verify me", b"and me too"]
         signers = [Signer.generate() for _ in range(2)]
-        sigs = [s.sign(c) for s, c in zip(signers, contents)]
+        sigs = [s.sign(signing_payload(n, c)) for s, n, c in zip(signers, nonces, contents)]
         compressor = lambda msg: encode_msg(msg, token_to_code)
 
         for signer, acct in zip(signers, accts):
@@ -219,14 +224,14 @@ class TestNegativeCases:
             except Exception:
                 pass
 
-        blob = encode_blob(list(zip(accts, [0, 1], contents)), sigs, compressor)
+        blob = encode_blob(list(zip(accts, nonces, contents)), sigs, compressor)
         decoded_msgs, decoded_sig = decoder.functions.decode(blob).call()
 
-        # Extract just the contents from decoded messages
-        decoded_contents = [m[2] for m in decoded_msgs]
+        # Reconstruct signing payloads: nonce || content (per issue #2)
         decoded_owners = [m[0] for m in decoded_msgs]
+        decoded_payloads = [signing_payload(m[1], m[2]) for m in decoded_msgs]
 
         result = registry.functions.verifyAggregated(
-            decoded_owners, decoded_contents, decoded_sig
+            decoded_owners, decoded_payloads, decoded_sig
         ).call()
         assert result is True
