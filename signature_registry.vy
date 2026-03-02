@@ -129,7 +129,7 @@ def _xmd(message: Bytes[1024], dst: Bytes[255]) -> Bytes[256]:
     Returns b_1 ‖ b_2 ‖ … ‖ b_8  (256 bytes).
     """
     dst_prime: Bytes[256] = concat(dst, convert(convert(len(dst), uint8), bytes1))
-    z_pad: Bytes[64] = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+    z_pad: Bytes[64] = concat(convert(0, bytes32), convert(0, bytes32))
 
     b0: bytes32 = self._sha256(concat(z_pad, message, b"\x01\x00", b"\x00", dst_prime))
     b1: bytes32 = self._sha256(concat(b0,        b"\x01", dst_prime))
