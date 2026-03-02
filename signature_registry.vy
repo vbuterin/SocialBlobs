@@ -11,7 +11,7 @@
 #
 # Variable-length calldata without loop-concat type errors:
 #   Append words to a DynArray[bytes32] in a loop (no type tension).
-#   Pad to MAX_WORDS so _abi_encode output is always a fixed size.
+#   Pad to MAX_WORDS so abi_encode output is always a fixed size.
 #   Route through the identity precompile (0x04) to obtain a Bytes value.
 #   slice(out, 32, MAX_WORDS*32) strips the ABI length prefix with literal
 #   offsets, leaving exactly MAX_PAIRS × 384 bytes for PAIRING_CHECK.
@@ -215,7 +215,7 @@ def _run_pairing(buf: DynArray[bytes32, 780]) -> bool:
     Pads buf to exactly MAX_WORDS with zero words. Zero pairs encode
     (∞, ∞) per EIP-2537, contributing e(∞, ∞) = 1 to the GT product.
 
-    _abi_encode(DynArray, ensure_tuple=False) produces:
+    abi_encode(DynArray, ensure_tuple=False) produces:
         [32-byte element count] [MAX_WORDS × 32-byte words]
     The identity precompile echoes this back as a Bytes value; slicing off
     the 32-byte prefix with literal offsets gives exactly PAIRING_SIZE bytes.
@@ -228,7 +228,7 @@ def _run_pairing(buf: DynArray[bytes32, 780]) -> bool:
 
     encoded: Bytes[24992] = raw_call(
         IDENTITY,
-        _abi_encode(b, ensure_tuple=False),
+        abi_encode(b, ensure_tuple=False),
         max_outsize=24992,
         is_static_call=True,
     )

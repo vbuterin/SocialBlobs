@@ -85,7 +85,13 @@ registry = deploy(w3, compile_vyper(Path("signature_registry.vy").read_text()), 
 # BLS signing
 # ---------------------------------------------------------------------------
 
-msg_contents = [b"hello world", b"test message", b"data blobs rock"]
+msg_contents = [
+    b"hello world",
+    b"the quick brown fox jumps over the yellow dog",
+    b"A purely peer-to-peer version of electronic cash would allow "
+    b"online payments to be sent directly from one party to another "
+    b"without going through a financial institution"
+]
 n = len(msg_contents)
 
 signers   = [Signer.generate() for _ in range(n)]
@@ -137,6 +143,12 @@ decoded_messages, decoded_sig = decoder.functions.decode(blob).call()
 assert decoded_messages == message_tuples, "Decoded messages do not match"
 assert decoded_sig == agg_sig,             "Decoded signature does not match"
 print("✅ Decoder test passed")
+
+# ---------------------------------------------------------------------------
+# Show how much compression we got
+# ---------------------------------------------------------------------------
+for msg in msg_contents:
+    print(f"Compressed {msg} from {len(msg)} to {len(encode_msg(msg, token_to_code))} bytes")
 
 # ---------------------------------------------------------------------------
 # Verify aggregate BLS signature on-chain

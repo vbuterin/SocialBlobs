@@ -76,7 +76,11 @@ if __name__ == "__main__":
 
     senders  = ["0x" + os.urandom(20).hex() for _ in range(3)]
     nonces   = [0, 1, 2]
-    contents = [b"hello world", b"foo bar", b"baz qux"]
+    contents = [
+        b"hello world",
+        b"foo bar",
+        b"the quick brown fox jumps over the yellow dog"
+    ]
     signers  = [Signer.generate() for _ in range(3)]
     sigs     = [s.sign(c) for s, c in zip(signers, contents)]
 

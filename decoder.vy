@@ -71,7 +71,7 @@ def _decompress(encoded: Bytes[5000]) -> Bytes[MAX_MSG_LEN]:
         if i >= len(encoded):
             outbytes: Bytes[MAX_MSG_LEN] = raw_call(
                 IDENTITY,
-                _abi_encode(out, ensure_tuple=False),
+                abi_encode(out, ensure_tuple=False),
                 max_outsize=MAX_MSG_LEN,
                 is_static_call=True,
             )
