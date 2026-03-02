@@ -299,14 +299,22 @@ def _verify_pop(pubKey: Bytes[128], popSig: Bytes[256]) -> bool:
 @external
 @payable
 def register(pubKey: Bytes[128], popProof: Bytes[256]):
-    """Register a BLS public key with a proof-of-possession."""
+    """Register a BLS public key with a proof-of-possession.
+
+    If the caller already has a registered key, the key is rotated
+    (overwritten) without incrementing num_keys.
+    """
     assert len(pubKey) == 128, "Invalid public key length"
     assert len(popProof) == 256, "Invalid POP length"
     assert self._verify_pop(pubKey, popProof), "InvalidProofOfPossession"
+    idx: uint256 = 0
+    if self.owner_pubkey[msg.sender] == b"":
+        idx = self.num_keys
+        self.owner_index[msg.sender] = idx
+        self.num_keys += 1
+    else:
+        idx = self.owner_index[msg.sender]
     self.owner_pubkey[msg.sender] = pubKey
-    idx: uint256 = self.num_keys
-    self.owner_index[msg.sender] = idx
-    self.num_keys += 1
     log KeyRegistered(owner=msg.sender, pubKey=pubKey, index=idx)
 
 # ═════════════════════════════════════════════════════════════════════════════
