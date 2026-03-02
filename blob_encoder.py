@@ -26,9 +26,9 @@ def _parse_sender(sender: bytes | str) -> bytes:
     if isinstance(sender, str):
         if not sender.startswith("0x"):
             raise ValueError(f"string sender must be 0x-prefixed, got {sender!r}")
-        return bytes.fromhex(sender[2:])
+        sender = bytes.fromhex(sender[2:])
     if len(sender) != 20:
-        raise ValueError(f"bytes sender must be 20 bytes, got {len(sender)}")
+        raise ValueError(f"sender must be 20 bytes, got {len(sender)}")
     return sender
 
 

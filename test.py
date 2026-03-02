@@ -115,9 +115,8 @@ print("Key registration complete")
 # Register blob on-chain and verify the event
 # ---------------------------------------------------------------------------
 
-ZERO_ADDR = Web3.to_checksum_address("0x" + "00" * 20)
 receipt = w3.eth.wait_for_transaction_receipt(
-    core.functions.registerCalldataBatch(blob, decoder.address, ZERO_ADDR)
+    core.functions.registerCalldataBatch(blob, decoder.address, registry.address)
         .transact({"from": deployer})
 )
 
