@@ -7,5 +7,3 @@ An implementation of an encoder/decoder and BLS signature verifier for https://g
 * `hash_to_point_test.py` tests the hash-to-point part of the BLS signature verifier (by far the hardest part to get right in my experience)
 * `bpe_encode.py` does an end-to-end test of the compression and decompression
 * `test.py` tests everything
-
-Requires the `py_ecc` library: https://github.com/ethereum/py_ecc/

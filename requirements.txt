@@ -1,0 +1,5 @@
+py_ecc>=7.0.0
+web3>=6.0.0
+vyper>=0.4.3
+pytest>=7.0.0
+eth-tester[py-evm]>=0.12.0
