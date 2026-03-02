@@ -1,0 +1,22 @@
+[project]
+name = "socialblobs"
+version = "0.1.0"
+description = "Encoder/decoder and BLS signature verifier for ERC-8180 Blob Authenticated Messaging"
+readme = "README.md"
+license = "CC0-1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "py_ecc>=7.0.0",
+    "web3>=6.0.0",
+    "vyper>=0.4.3",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "eth-tester[py-evm]>=0.12.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["test_*.py", "hash_to_point_test.py"]
