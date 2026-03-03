@@ -3,7 +3,7 @@ name = "socialblobs"
 version = "0.1.0"
 description = "Blob-authenticated messaging (ERC-8180) — reference implementation"
 requires-python = ">=3.10"
-license = {text = "CC0-1.0"}
+license = {text = "MIT"}
 dependencies = [
     "py_ecc>=7.0.0",
     "web3>=7.0.0",
