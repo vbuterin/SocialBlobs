@@ -1,10 +1,10 @@
-"""test_blob_encoder.py — Tests for blob encoding with compression.
+"""test_blob_encoder.py -- Tests for blob encoding with compression.
 
 Tests the binary blob format:
-  [0:2]       N           — number of messages (uint16, big-endian)
-  [2:2+2N]    offsets     — per-message start offset (uint16, big-endian)
-  [2+2N:-256] bodies      — sender (20 B) | nonce (8 B) | compressed contents
-  [-256:]     agg sig     — aggregate BLS signature (256 bytes)
+  [0:2]       N           -- number of messages (uint16, big-endian)
+  [2:2+2N]    offsets     -- per-message start offset (uint16, big-endian)
+  [2+2N:-256] bodies      -- sender (20 B) | nonce (8 B) | compressed contents
+  [-256:]     agg sig     -- aggregate BLS signature (256 bytes)
 """
 
 import os
@@ -14,12 +14,12 @@ import pytest
 
 from data_signer import Signer, aggregate_signatures
 from blob_encoder import encode_blob, signing_payload, _parse_sender
-from bpe_encode import build_10bit_dict_from_corpus, encode_msg
+from bpe_encode import build_12bit_dict_from_corpus, encode_msg
 
 
 @pytest.fixture(scope="module")
 def compression():
-    token_to_code, _, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+    token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
     return token_to_code
 
 
@@ -34,7 +34,7 @@ def identity_compressor():
     return lambda x: x
 
 
-# ── Sender parsing ──────────────────────────────────────────────────────────
+# -- Sender parsing --
 
 
 class TestParseSender:
@@ -67,7 +67,7 @@ class TestParseSender:
         assert len(result) == 20
 
 
-# ── Blob structure ──────────────────────────────────────────────────────────
+# -- Blob structure --
 
 
 class TestBlobStructure:
@@ -142,7 +142,7 @@ class TestBlobStructure:
         assert int.from_bytes(nonce_bytes, "big") == nonce
 
 
-# ── Edge cases ──────────────────────────────────────────────────────────────
+# -- Edge cases --
 
 
 class TestBlobEdgeCases:

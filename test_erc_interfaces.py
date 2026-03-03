@@ -1,4 +1,4 @@
-"""test_erc_interfaces.py — Tests for PR #12 ERC interface contracts.
+"""test_erc_interfaces.py -- Tests for PR #12 ERC interface contracts.
 
 Tests bam_core.vy (IERC_BAM_Core / IERC_BSS) and exposer.vy (IERC_BAM_Exposer)
 per the PR #12 test plan.
@@ -11,10 +11,10 @@ from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
 from blob_encoder import encode_blob, signing_payload
-from bpe_encode import build_10bit_dict_from_corpus, encode_msg
+from bpe_encode import build_12bit_dict_from_corpus, encode_msg
 
 
-# ── Fixtures ─────────────────────────────────────────────────────────────────
+# -- Fixtures --
 
 
 def compile_vyper(source: str) -> dict:
@@ -59,11 +59,11 @@ def exposer(w3, deployer, bam_core):
 
 @pytest.fixture(scope="module")
 def compression():
-    token_to_code, dict_bytes, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+    token_to_code, dict_bytes, _, _ = build_12bit_dict_from_corpus("corpus.txt")
     return token_to_code
 
 
-# ── BSS / declareBlobSegment ─────────────────────────────────────────────────
+# -- BSS / declareBlobSegment --
 
 
 class TestDeclareBlobSegment:
@@ -102,7 +102,7 @@ class TestDeclareBlobSegment:
             ).call({"from": deployer})
 
 
-# ── registerBlobBatch ────────────────────────────────────────────────────────
+# -- registerBlobBatch --
 
 
 class TestRegisterBlobBatch:
@@ -134,7 +134,7 @@ class TestRegisterBlobBatch:
             ).call({"from": deployer})
 
 
-# ── registerCalldataBatch ────────────────────────────────────────────────────
+# -- registerCalldataBatch --
 
 
 class TestRegisterCalldataBatch:
@@ -187,7 +187,7 @@ class TestRegisterCalldataBatch:
         assert logs[0].args.contentHash == Web3.keccak(data)
 
 
-# ── Exposer ──────────────────────────────────────────────────────────────────
+# -- Exposer --
 
 
 class TestExposer:
@@ -282,7 +282,7 @@ class TestExposer:
         assert on_chain_id == manual_id
 
 
-# ── Existing contracts unmodified ────────────────────────────────────────────
+# -- Existing contracts unmodified --
 
 
 class TestExistingContractsUnmodified:
@@ -290,7 +290,7 @@ class TestExistingContractsUnmodified:
 
     def test_decoder_decompress_roundtrip(self, w3, deployer):
         from bpe_encode import deploy_decoder
-        token_to_code, dict_bytes, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+        token_to_code, dict_bytes, _, _ = build_12bit_dict_from_corpus("corpus.txt")
         dec = deploy_decoder(w3, deployer, dict_bytes)
 
         msg = b"hello world"

@@ -1,12 +1,12 @@
 # @version ^0.4.3
 #
-# decoder.vy — IERC_BAM_Decoder implementation.
+# decoder.vy -- IERC_BAM_Decoder implementation.
 #
 # Blob format:
-#   [0:2]       N                 — number of messages (uint16, big-endian)
-#   [2:2+2N]    offsets[0..N-1]   — per-message start offset (uint16, big-endian)
-#   [2+2N:−256] message bodies    — each: sender (20 B) | nonce (8 B) | contents
-#   [−256:]     aggregate BLS signature (256 bytes)
+#   [0:2]       N                 -- number of messages (uint16, big-endian)
+#   [2:2+2N]    offsets[0..N-1]   -- per-message start offset (uint16, big-endian)
+#   [2+2N:-256] message bodies    -- each: sender (20 B) | nonce (8 B) | contents
+#   [-256:]     aggregate BLS signature (256 bytes)
 
 MAX_MESSAGES: constant(uint256) = 64
 MAX_MSG_LEN:  constant(uint256) = 256
@@ -25,42 +25,40 @@ struct Message:
     nonce:    uint64
     contents: Bytes[MAX_PAYLOAD]
 
-DICT_BYTES: Bytes[2560]
+DICT_BYTES: Bytes[10240]
 
 # ------------------------------------------------------------
-# 2️⃣  Constructor – initialise with the dictionary blob
+# 2  Constructor -- initialise with the dictionary blob
 # ------------------------------------------------------------
 @deploy
-def __init__(dict_bytes: Bytes[2560]):
+def __init__(dict_bytes: Bytes[10240]):
     self.DICT_BYTES = dict_bytes
 
 # ------------------------------------------------------------
-# 3️⃣  Helper – unpack a 5‑byte word into four 10‑bit codes
+# 3  Helper -- unpack a 3-byte word into two 12-bit codes
 # ------------------------------------------------------------
 @internal
 @view
-def _unpack(word: uint256) -> uint256[4]:
-    out: uint256[4] = [0, 0, 0, 0]
-    out[0] = (word >> 30) & 1023
-    out[1] = (word >> 20) & 1023
-    out[2] = (word >> 10) & 1023
-    out[3] = word & 1023
+def _unpack(word: uint256) -> uint256[2]:
+    out: uint256[2] = [0, 0]
+    out[0] = (word >> 12) & 4095
+    out[1] = word & 4095
     return out
 
 # ------------------------------------------------------------
-# 4️⃣  Decode – turn 5‑byte blocks back into the original message
+# 4  Decode -- turn 3-byte blocks back into the original message
 # ------------------------------------------------------------
-# (Maximum encoded length is 5000 bytes → 1000 words → 4000 decoded bytes)
+# (Maximum encoded length is 3000 bytes -> 1000 words -> 2000 decoded bytes)
 
 @internal
 @view
 def _decompress(encoded: Bytes[5000]) -> Bytes[MAX_MSG_LEN]:
     """
-    `encoded` must be a multiple of 5 bytes.
+    `encoded` must be a multiple of 3 bytes.
     Returns the decoded message.
     """
-    assert len(encoded) % 5 == 0, "encoded data not 5 byte aligned"
-    assert len(encoded) <= 5000, "input too long"
+    assert len(encoded) % 3 == 0, "encoded data not 3 byte aligned"
+    assert len(encoded) <= 3000, "input too long"
 
     out: bytes32[MAX_MSG_WORDS] = empty(bytes32[MAX_MSG_WORDS])
     i: uint256 = 0
@@ -76,34 +74,34 @@ def _decompress(encoded: Bytes[5000]) -> Bytes[MAX_MSG_LEN]:
                 is_static_call=True,
             )
             return slice(outbytes, 0, pos_in_out)
-        # turn 5 bytes into 40‑bit word
-        word: uint256 = convert(slice(encoded, i, 5), uint256)
+        # turn 3 bytes into 24-bit word
+        word: uint256 = convert(slice(encoded, i, 3), uint256)
 
-        # expand into 4 codes
-        c: uint256[4] = self._unpack(word)
+        # expand into 2 codes
+        c: uint256[2] = self._unpack(word)
 
         offs: uint256 = 0
         ln: uint256 = 0
 
 
-        # helper – compute offset & length for a single code
+        # helper -- compute offset & length for a single code
         for code: uint256 in c:
             # ---------- compute offset ----------
-            if code < 256:
-                offs = code * 4          # 4‑byte tokens
+            if code < 1024:
+                offs = code * 4          # 4-byte tokens
                 ln = 4
-            elif code < 512:
-                offs = 256 * 4 + (code - 256) * 3
+            elif code < 2048:
+                offs = 1024 * 4 + (code - 1024) * 3
                 ln   = 3
-            elif code < 768:
-                offs = 256 * 4 + 256 * 3 + (code - 512) * 2
+            elif code < 3072:
+                offs = 1024 * 4 + 1024 * 3 + (code - 2048) * 2
                 ln   = 2
             else:
-                offs = 256 * 4 + 256 * 3 + 256 * 2 + (code - 768)
+                offs = 1024 * 4 + 1024 * 3 + 1024 * 2 + (code - 3072)
                 ln   = 1
 
             # ---------- sanity ----------
-            assert offs + ln <= 2560, "dictionary index out of bounds"
+            assert offs + ln <= 10240, "dictionary index out of bounds"
             assert pos_in_out + ln <= MAX_MSG_LEN, "output buffer overflow"
 
             # ---------- append ----------
@@ -117,7 +115,7 @@ def _decompress(encoded: Bytes[5000]) -> Bytes[MAX_MSG_LEN]:
                         bytes32)
                     )
                 pos_in_out += ln
-        i += 5
+        i += 3
 
     raise "Should never get here, there's a bug"
 

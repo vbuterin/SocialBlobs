@@ -16,7 +16,7 @@ from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
 from blob_encoder import encode_blob, signing_payload
-from bpe_encode import deploy_decoder, build_10bit_dict_from_corpus, encode_msg
+from bpe_encode import deploy_decoder, build_12bit_dict_from_corpus, encode_msg
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ def registerCalldataBatch(
     return contentHash
 """
 
-token_to_code, DICT_BYTES, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+token_to_code, DICT_BYTES, _, _ = build_12bit_dict_from_corpus("corpus.txt")
 core     = deploy(w3, compile_vyper(CORE_SOURCE),                        deployer)
 decoder  = deploy_decoder(w3, deployer, DICT_BYTES)
 registry = deploy(w3, compile_vyper(Path("signature_registry.vy").read_text()), deployer)
@@ -141,7 +141,7 @@ decoded_messages, decoded_sig = decoder.functions.decode(blob).call()
 
 assert decoded_messages == message_tuples, "Decoded messages do not match"
 assert decoded_sig == agg_sig,             "Decoded signature does not match"
-print("✅ Decoder test passed")
+print("Decoder test passed")
 
 # ---------------------------------------------------------------------------
 # Show how much compression we got
@@ -158,7 +158,7 @@ messages = [signing_payload(n, m) for n, m in zip(nonces, msg_contents)]
 
 assert registry.functions.verifyAggregated(owners, messages, agg_sig).call(), \
     "verifyAggregated rejected a valid aggregate signature"
-print("✅ Aggregate signature verified on-chain")
+print("Aggregate signature verified on-chain")
 
 # Negative check: bit-flipped signature must be rejected (may revert or return False).
 bad_sig = bytes([agg_sig[0] ^ 0xFF]) + agg_sig[1:]
@@ -167,7 +167,7 @@ try:
 except Exception:
     bad_result = False
 assert not bad_result, "verifyAggregated accepted a tampered signature"
-print("✅ Tampered signature correctly rejected")
+print("Tampered signature correctly rejected")
 
 # Negative check: wrong message must be rejected.
 wrong_messages = [signing_payload(0, b"wrong message")] + messages[1:]
@@ -176,9 +176,9 @@ try:
 except Exception:
     wrong_result = False
 assert not wrong_result, "verifyAggregated accepted wrong messages"
-print("✅ Wrong message correctly rejected")
+print("Wrong message correctly rejected")
 
 print()
 print(f"  Blob (hex)     : 0x{blob.hex()}")
 print(f"  Aggregate sig  : 0x{agg_sig.hex()}")
-print("✅ All tests passed")
+print("All tests passed")

@@ -1,15 +1,15 @@
-"""test_bpe_encode.py — Tests for BPE 10-bit dictionary compression/decompression.
+"""test_bpe_encode.py -- Tests for BPE 12-bit dictionary compression/decompression.
 
 Tests the full compression pipeline:
   - Dictionary building from corpus
   - Greedy longest-match encoding
-  - 10-bit code packing into 5-byte words
+  - 12-bit code packing into 3-byte words
   - On-chain decompression round-trip via decoder.vy
 """
 
 import pytest
 from bpe_encode import (
-    build_10bit_dict_from_corpus,
+    build_12bit_dict_from_corpus,
     encode_msg,
     _count_windows,
     _top_tokens,
@@ -17,7 +17,7 @@ from bpe_encode import (
 )
 
 
-# ── Dictionary building ─────────────────────────────────────────────────────
+# -- Dictionary building --
 
 
 class TestCountWindows:
@@ -65,10 +65,10 @@ class TestCountWindows:
 class TestTopTokens:
     """Tests for _top_tokens (code table construction)."""
 
-    def test_total_codes_is_1024_with_corpus(self):
-        """With a large enough corpus, all 1024 codes are used."""
-        token_to_code, _, _, _ = build_10bit_dict_from_corpus("corpus.txt")
-        assert len(token_to_code) == 1024
+    def test_total_codes_with_corpus(self):
+        """With a large enough corpus, we get 3328 codes (1024+1024+1024+256)."""
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        assert len(token_to_code) == 3328
 
     def test_small_data_fills_all_1byte_codes(self):
         """Even small data always produces 256 1-byte codes."""
@@ -84,29 +84,29 @@ class TestTopTokens:
         token_to_code, _ = _top_tokens(counts)
         assert token_to_code[b"\x00\x00\x00\x00"] == 0
 
-    def test_corpus_4byte_tokens_in_range_0_255(self):
-        """With the real corpus, 4-byte tokens get codes 0-255."""
-        token_to_code, _, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+    def test_corpus_4byte_tokens_in_range_0_1023(self):
+        """With the real corpus, 4-byte tokens get codes 0-1023."""
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
         four_byte_codes = [c for tok, c in token_to_code.items()
-                           if len(tok) == 4 and c < 256]
-        assert len(four_byte_codes) == 256
+                           if len(tok) == 4 and c < 1024]
+        assert len(four_byte_codes) == 1024
 
-    def test_corpus_3byte_tokens_in_range_256_511(self):
-        token_to_code, _, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+    def test_corpus_3byte_tokens_in_range_1024_2047(self):
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
         three_byte_codes = [c for tok, c in token_to_code.items()
-                            if len(tok) == 3 and 256 <= c < 512]
-        assert len(three_byte_codes) == 256
+                            if len(tok) == 3 and 1024 <= c < 2048]
+        assert len(three_byte_codes) == 1024
 
-    def test_corpus_2byte_tokens_in_range_512_767(self):
-        token_to_code, _, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+    def test_corpus_2byte_tokens_in_range_2048_3071(self):
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
         two_byte_codes = [c for tok, c in token_to_code.items()
-                          if len(tok) == 2 and 512 <= c < 768]
-        assert len(two_byte_codes) == 256
+                          if len(tok) == 2 and 2048 <= c < 3072]
+        assert len(two_byte_codes) == 1024
 
-    def test_corpus_1byte_tokens_in_range_768_1023(self):
-        token_to_code, _, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+    def test_corpus_1byte_tokens_in_range_3072_3327(self):
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
         one_byte_codes = [c for tok, c in token_to_code.items()
-                          if len(tok) == 1 and 768 <= c < 1024]
+                          if len(tok) == 1 and 3072 <= c < 3328]
         assert len(one_byte_codes) == 256
 
     def test_all_single_bytes_present(self):
@@ -126,7 +126,7 @@ class TestMakeDictBlobs:
         counts = _count_windows(data)
         token_to_code, _ = _top_tokens(counts)
         dict_bytes, dict_offs, dict_len = _make_dict_blobs(token_to_code)
-        assert len(dict_bytes) == 2560
+        assert len(dict_bytes) == 10240
 
     def test_dict_offs_and_len_consistent(self):
         data = b"hello world " * 100
@@ -148,7 +148,7 @@ class TestMakeDictBlobs:
         _, dict_offs, dict_len = _make_dict_blobs(token_to_code)
         regions = sorted(
             [(dict_offs[c], dict_offs[c] + dict_len[c])
-             for c in range(1024) if dict_len[c] > 0],
+             for c in range(4096) if dict_len[c] > 0],
             key=lambda x: x[0],
         )
         for i in range(len(regions) - 1):
@@ -157,22 +157,22 @@ class TestMakeDictBlobs:
 
 
 class TestBuildFromCorpus:
-    """Tests for build_10bit_dict_from_corpus (full pipeline)."""
+    """Tests for build_12bit_dict_from_corpus (full pipeline)."""
 
     def test_loads_corpus(self):
         token_to_code, dict_bytes, dict_offs, dict_len = \
-            build_10bit_dict_from_corpus("corpus.txt")
-        assert len(token_to_code) == 1024
-        assert len(dict_bytes) == 2560
+            build_12bit_dict_from_corpus("corpus.txt")
+        assert len(token_to_code) == 3328
+        assert len(dict_bytes) == 10240
 
     def test_deterministic(self):
-        r1 = build_10bit_dict_from_corpus("corpus.txt")
-        r2 = build_10bit_dict_from_corpus("corpus.txt")
+        r1 = build_12bit_dict_from_corpus("corpus.txt")
+        r2 = build_12bit_dict_from_corpus("corpus.txt")
         assert r1[0] == r2[0]  # token_to_code
         assert r1[1] == r2[1]  # dict_bytes
 
 
-# ── Encoding ─────────────────────────────────────────────────────────────────
+# -- Encoding --
 
 
 class TestEncodeMsg:
@@ -180,12 +180,12 @@ class TestEncodeMsg:
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.token_to_code, _, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+        self.token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
 
-    def test_output_is_5_byte_aligned(self):
+    def test_output_is_3_byte_aligned(self):
         msg = b"hello world"
         encoded = encode_msg(msg, self.token_to_code)
-        assert len(encoded) % 5 == 0
+        assert len(encoded) % 3 == 0
 
     def test_empty_message(self):
         encoded = encode_msg(b"", self.token_to_code)
@@ -193,7 +193,7 @@ class TestEncodeMsg:
 
     def test_single_byte(self):
         encoded = encode_msg(b"x", self.token_to_code)
-        assert len(encoded) == 5  # 1 code + 3 padding → 4 codes → 5 bytes
+        assert len(encoded) == 3  # 1 code + 1 padding -> 2 codes -> 3 bytes
 
     def test_compression_ratio(self):
         """Longer messages with common patterns should compress."""
@@ -206,21 +206,21 @@ class TestEncodeMsg:
         """Every single byte must be encodable."""
         for i in range(256):
             encoded = encode_msg(bytes([i]), self.token_to_code)
-            assert len(encoded) == 5
+            assert len(encoded) == 3
 
     def test_binary_data_encodable(self):
         """Arbitrary binary data should encode without errors."""
         import os
         data = os.urandom(64)
         encoded = encode_msg(data, self.token_to_code)
-        assert len(encoded) % 5 == 0
+        assert len(encoded) % 3 == 0
         assert len(encoded) > 0
 
     def test_repeated_pattern_compresses(self):
         """Repeated patterns should use multi-byte tokens effectively."""
         msg = b"aaaa" * 10  # 40 bytes
         encoded = encode_msg(msg, self.token_to_code)
-        # Each "aaaa" maps to a single 10-bit code, 10 codes = 3 words = 15 bytes
+        # Each "aaaa" maps to a single 12-bit code, 10 codes = 5 words = 15 bytes
         # Even with padding, should be well under 2x original size
         assert len(encoded) <= len(msg) * 2
 
@@ -235,33 +235,30 @@ class TestEncodeMsg:
         e2 = encode_msg(b"world", self.token_to_code)
         assert e1 != e2
 
-    def test_10bit_codes_valid_range(self):
-        """All packed codes should be in the 0-1023 range."""
+    def test_12bit_codes_valid_range(self):
+        """All packed codes should be in the 0-4095 range."""
         msg = b"test message"
         encoded = encode_msg(msg, self.token_to_code)
-        for i in range(0, len(encoded), 5):
-            word = int.from_bytes(encoded[i:i + 5], "big")
-            c0 = (word >> 30) & 1023
-            c1 = (word >> 20) & 1023
-            c2 = (word >> 10) & 1023
-            c3 = word & 1023
-            for c in [c0, c1, c2, c3]:
-                assert 0 <= c <= 1023, f"code {c} out of range"
+        for i in range(0, len(encoded), 3):
+            word = int.from_bytes(encoded[i:i + 3], "big")
+            c0 = (word >> 12) & 4095
+            c1 = word & 4095
+            for c in [c0, c1]:
+                assert 0 <= c <= 4095, f"code {c} out of range"
 
     def test_greedy_longest_match(self):
         """Encoder should prefer longer tokens when available."""
-        msg = b"the "  # 4 bytes — should use a single 4-byte token if available
+        msg = b"the "  # 4 bytes -- should use a single 4-byte token if available
         encoded = encode_msg(msg, self.token_to_code)
-        # If "the " is a 4-byte token, we get 1 code + 3 padding = 5 bytes
-        # If not, we'd get more codes
-        assert len(encoded) == 5  # single 5-byte word
+        # If "the " is a 4-byte token, we get 1 code + 1 padding = 3 bytes
+        assert len(encoded) == 3  # single 3-byte word
 
 
-# ── On-chain decompression round-trip ────────────────────────────────────────
+# -- On-chain decompression round-trip --
 
 
 class TestDecompressionRoundTrip:
-    """Test compression → on-chain decompression matches the original."""
+    """Test compression -> on-chain decompression matches the original."""
 
     def test_short_message(self, decoder, token_to_code):
         msg = b"hello world"
@@ -307,10 +304,10 @@ class TestDecompressionRoundTrip:
             decompressed = decoder.functions.decompress(compressed).call()
             assert decompressed[:len(msg)] == msg
 
-    def test_not_5byte_aligned_reverts(self, decoder):
-        """Input not aligned to 5 bytes should revert."""
+    def test_not_3byte_aligned_reverts(self, decoder):
+        """Input not aligned to 3 bytes should revert."""
         with pytest.raises(Exception):
-            decoder.functions.decompress(b"\x00\x01\x02").call()
+            decoder.functions.decompress(b"\x00\x01\x02\x03").call()
 
     def test_empty_input(self, decoder):
         """Empty input should return empty output."""

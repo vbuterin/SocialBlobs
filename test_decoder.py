@@ -1,9 +1,9 @@
-"""test_decoder.py — Tests for on-chain blob decoder with decompression.
+"""test_decoder.py -- Tests for on-chain blob decoder with decompression.
 
 Tests decoder.vy:
-  - decode(): Parse blob → messages[] + aggregated signature
+  - decode(): Parse blob -> messages[] + aggregated signature
   - decompress(): Decompress encoded data using dictionary
-  - Full round-trip: encode (with compression) → decode → verify
+  - Full round-trip: encode (with compression) -> decode -> verify
 """
 
 import os
@@ -17,7 +17,7 @@ from blob_encoder import encode_blob, signing_payload
 from bpe_encode import encode_msg
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# -- Helpers --
 
 
 def make_blob(senders, nonces, contents, compressor):
@@ -29,7 +29,7 @@ def make_blob(senders, nonces, contents, compressor):
     return blob, signers, sigs
 
 
-# ── decode() tests ──────────────────────────────────────────────────────────
+# -- decode() tests --
 
 
 class TestDecode:
@@ -112,7 +112,7 @@ class TestDecode:
             assert decoded_msgs[i][2] == content
 
 
-# ── decompress() tests ──────────────────────────────────────────────────────
+# -- decompress() tests --
 
 
 class TestDecompress:
@@ -139,15 +139,15 @@ class TestDecompress:
             decoder.functions.decompress(b"\x00\x01\x02\x03").call()
 
     def test_multiple_words(self, decoder, token_to_code):
-        """Message requiring multiple 5-byte words should decode correctly."""
+        """Message requiring multiple 3-byte words should decode correctly."""
         msg = b"this is a longer test message for multi-word encoding"
         compressed = encode_msg(msg, token_to_code)
-        assert len(compressed) > 5  # needs multiple words
+        assert len(compressed) > 3  # needs multiple words
         result = decoder.functions.decompress(compressed).call()
         assert result == msg
 
 
-# ── Error cases ─────────────────────────────────────────────────────────────
+# -- Error cases --
 
 
 class TestDecodeErrors:

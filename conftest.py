@@ -1,4 +1,4 @@
-"""conftest.py — Shared pytest fixtures for SocialBlobs.
+"""conftest.py -- Shared pytest fixtures for SocialBlobs.
 
 Provides:
   - In-memory eth_tester chain (w3, deployer, accounts)
@@ -16,7 +16,7 @@ from web3.providers.eth_tester import EthereumTesterProvider
 from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
-from bpe_encode import build_10bit_dict_from_corpus, deploy_decoder, encode_msg
+from bpe_encode import build_12bit_dict_from_corpus, deploy_decoder, encode_msg
 from blob_encoder import encode_blob
 
 
@@ -57,8 +57,8 @@ def accounts(w3):
 
 @pytest.fixture(scope="session")
 def compression_dict():
-    """Build the BPE 10-bit dictionary from corpus.txt."""
-    token_to_code, dict_bytes, dict_offs, dict_len = build_10bit_dict_from_corpus("corpus.txt")
+    """Build the BPE 12-bit dictionary from corpus.txt."""
+    token_to_code, dict_bytes, dict_offs, dict_len = build_12bit_dict_from_corpus("corpus.txt")
     return token_to_code, dict_bytes, dict_offs, dict_len
 
 
