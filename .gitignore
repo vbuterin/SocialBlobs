@@ -5,3 +5,4 @@ out.blob
 .pytest_cache/
 dist/
 build/
+.env
