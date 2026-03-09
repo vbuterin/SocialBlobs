@@ -20,7 +20,7 @@ from bam_client import BAMClient, BAMClientError
 
 @pytest.fixture(scope="module")
 def provider():
-    return DefaultBAMProvider(corpus_path="corpus.txt")
+    return DefaultBAMProvider()
 
 
 @pytest.fixture(scope="module")
@@ -64,7 +64,7 @@ class TestDispatcher:
     def test_get_dictionary(self, dispatcher):
         result = dispatcher.dispatch("bam_getDictionary", None)
         assert result["numCodes"] >= 1024
-        assert result["bitsPerCode"] == 10
+        assert result["bitsPerCode"] == 12
         assert result["dictBytesSize"] > 0
 
     def test_compress_decompress(self, dispatcher):
@@ -105,7 +105,7 @@ class TestHTTPServer:
     def test_get_dictionary_via_client(self, client):
         result = client.get_dictionary()
         assert result["numCodes"] >= 1024
-        assert result["bitsPerCode"] == 10
+        assert result["bitsPerCode"] == 12
 
     def test_compress_via_client(self, client):
         result = client.compress(b"hello world")
@@ -182,5 +182,5 @@ class TestDefaultProvider:
     def test_dict_info(self, provider):
         info = provider.get_dictionary()
         assert info.num_codes >= 1024
-        assert info.bits_per_code == 10
+        assert info.bits_per_code == 12
         assert info.dict_bytes_size > 0

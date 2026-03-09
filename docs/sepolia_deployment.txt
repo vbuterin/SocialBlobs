@@ -1,0 +1,25 @@
+Network: Sepolia (chain ID 11155111)
+Deployer: 0x710A5B2775634253003a9E8C6d4fcb9CA7Af66cE
+Corpus: Farcaster social data (PR #24)
+Dictionary: 12-bit (4096 codes, 10240-byte blob)
+
+BAM Core: 0xDd422eb2d2FA0D623C79bB9093d738f1aFc788B5
+Decoder: 0x64FEf987f1F181812Dda47EeB58C04720dD4044F
+Registry: 0xB192BD49e728D645603A98dd1348a0fDaf307866
+Exposer: 0xc1f071949596B6091F5430F2bb56f8652F78cA2B
+Content Hash: 67f7a445841bbc3a4b0e1aaf9195b694b5939c3241f82420ec6216ed89a10568
+
+Compression ratios (Farcaster corpus):
+  11B ->  6B (0.55x): "hello world"
+  45B -> 24B (0.53x): "the quick brown fox..."
+ 168B -> 84B (0.50x): "A purely peer-to-peer version..."
+
+All 10 steps passed: deploy, metadata, BLS register, single verify,
+encode+register, on-chain decode, aggregate verify, expose, BSS bounds,
+decompression round-trip.
+
+Previous deployment (pre-Farcaster corpus):
+  BAM Core: 0xF53621c01B0468c28F96c1752b09e8eB8d4eEC9B
+  Decoder: 0x504a90cE40524c2965E7350dBF7c6824Eb374B50
+  Registry: 0xcd82c574D83f19a5F0D0d3C6Ad8f1532AA0BF2c8
+  Exposer: 0x4A382832c8608B7d6419EE7077bc62CA15e0F675

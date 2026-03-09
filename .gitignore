@@ -1,4 +1,8 @@
 __pycache__/
 *.pyc
+*.egg-info/
 out.blob
 .pytest_cache/
+dist/
+build/
+.env

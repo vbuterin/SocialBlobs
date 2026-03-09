@@ -18,10 +18,14 @@ from web3 import Web3
 from eth_account import Account
 from eth_account.signers.local import LocalAccount
 from vyper import compile_code
+import sys
+from pathlib import Path as ScriptPath
+sys.path.insert(0, str(ScriptPath(__file__).resolve().parent.parent / "src"))
 
 from data_signer import Signer, aggregate_signatures
 from blob_encoder import encode_blob
-from bpe_encode import build_10bit_dict_from_corpus, encode_msg, deploy_decoder
+from bpe_encode import build_12bit_dict_from_corpus, encode_msg, deploy_decoder
+from paths import CONTRACTS_DIR, CORPUS_PATH
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -113,13 +117,13 @@ print("Step 1: Deploy 4 contracts")
 print("=" * 70)
 
 # Build compression dictionary
-token_to_code, DICT_BYTES, _, _ = build_10bit_dict_from_corpus("corpus.txt")
+token_to_code, DICT_BYTES, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
 
 # Compile contracts
-bam_core_source = Path("bam_core.vy").read_text()
-decoder_source = Path("decoder.vy").read_text()
-registry_source = Path("signature_registry.vy").read_text()
-exposer_source = Path("exposer.vy").read_text()
+bam_core_source = (CONTRACTS_DIR / "bam_core.vy").read_text()
+decoder_source = (CONTRACTS_DIR / "decoder.vy").read_text()
+registry_source = (CONTRACTS_DIR / "signature_registry.vy").read_text()
+exposer_source = (CONTRACTS_DIR / "exposer.vy").read_text()
 
 bam_core_compiled = compile_vyper(bam_core_source)
 decoder_compiled = compile_vyper(decoder_source)

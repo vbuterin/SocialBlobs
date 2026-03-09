@@ -16,6 +16,7 @@ from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
 from blob_encoder import encode_blob, signing_payload
+from paths import CONTRACTS_DIR, CORPUS_PATH
 from bpe_encode import deploy_decoder, build_12bit_dict_from_corpus, encode_msg
 
 
@@ -76,10 +77,10 @@ def registerCalldataBatch(
     return contentHash
 """
 
-token_to_code, DICT_BYTES, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+token_to_code, DICT_BYTES, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
 core     = deploy(w3, compile_vyper(CORE_SOURCE),                        deployer)
 decoder  = deploy_decoder(w3, deployer, DICT_BYTES)
-registry = deploy(w3, compile_vyper(Path("signature_registry.vy").read_text()), deployer)
+registry = deploy(w3, compile_vyper((CONTRACTS_DIR / "signature_registry.vy").read_text()), deployer)
 
 # ---------------------------------------------------------------------------
 # BLS signing

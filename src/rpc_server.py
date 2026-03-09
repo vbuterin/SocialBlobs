@@ -352,7 +352,7 @@ def main() -> None:
     parser.add_argument("--host", default="0.0.0.0", help="Bind address (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8545, help="HTTP port (default: 8545)")
     parser.add_argument("--ws-port", type=int, default=0, help="WebSocket port (0 = disabled)")
-    parser.add_argument("--corpus", default="corpus.txt", help="Path to BPE corpus file")
+    parser.add_argument("--corpus", default=None, help="Path to BPE corpus file")
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
 

@@ -8,6 +8,7 @@ Tests the full compression pipeline:
 """
 
 import pytest
+from paths import CORPUS_PATH
 from bpe_encode import (
     build_12bit_dict_from_corpus,
     encode_msg,
@@ -67,7 +68,7 @@ class TestTopTokens:
 
     def test_total_codes_with_corpus(self):
         """With a large enough corpus, we get 3328 codes (1024+1024+1024+256)."""
-        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
         assert len(token_to_code) == 3328
 
     def test_small_data_fills_all_1byte_codes(self):
@@ -86,25 +87,25 @@ class TestTopTokens:
 
     def test_corpus_4byte_tokens_in_range_0_1023(self):
         """With the real corpus, 4-byte tokens get codes 0-1023."""
-        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
         four_byte_codes = [c for tok, c in token_to_code.items()
                            if len(tok) == 4 and c < 1024]
         assert len(four_byte_codes) == 1024
 
     def test_corpus_3byte_tokens_in_range_1024_2047(self):
-        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
         three_byte_codes = [c for tok, c in token_to_code.items()
                             if len(tok) == 3 and 1024 <= c < 2048]
         assert len(three_byte_codes) == 1024
 
     def test_corpus_2byte_tokens_in_range_2048_3071(self):
-        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
         two_byte_codes = [c for tok, c in token_to_code.items()
                           if len(tok) == 2 and 2048 <= c < 3072]
         assert len(two_byte_codes) == 1024
 
     def test_corpus_1byte_tokens_in_range_3072_3327(self):
-        token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        token_to_code, _, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
         one_byte_codes = [c for tok, c in token_to_code.items()
                           if len(tok) == 1 and 3072 <= c < 3328]
         assert len(one_byte_codes) == 256
@@ -161,13 +162,13 @@ class TestBuildFromCorpus:
 
     def test_loads_corpus(self):
         token_to_code, dict_bytes, dict_offs, dict_len = \
-            build_12bit_dict_from_corpus("corpus.txt")
+            build_12bit_dict_from_corpus(str(CORPUS_PATH))
         assert len(token_to_code) == 3328
         assert len(dict_bytes) == 10240
 
     def test_deterministic(self):
-        r1 = build_12bit_dict_from_corpus("corpus.txt")
-        r2 = build_12bit_dict_from_corpus("corpus.txt")
+        r1 = build_12bit_dict_from_corpus(str(CORPUS_PATH))
+        r2 = build_12bit_dict_from_corpus(str(CORPUS_PATH))
         assert r1[0] == r2[0]  # token_to_code
         assert r1[1] == r2[1]  # dict_bytes
 
@@ -180,7 +181,7 @@ class TestEncodeMsg:
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        self.token_to_code, _, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
 
     def test_output_is_3_byte_aligned(self):
         msg = b"hello world"

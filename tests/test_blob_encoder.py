@@ -14,12 +14,13 @@ import pytest
 
 from data_signer import Signer, aggregate_signatures
 from blob_encoder import encode_blob, signing_payload, _parse_sender
+from paths import CORPUS_PATH
 from bpe_encode import build_12bit_dict_from_corpus, encode_msg
 
 
 @pytest.fixture(scope="module")
 def compression():
-    token_to_code, _, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+    token_to_code, _, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
     return token_to_code
 
 

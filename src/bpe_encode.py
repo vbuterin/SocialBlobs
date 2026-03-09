@@ -4,6 +4,7 @@ from typing import Dict, Tuple
 from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
 from vyper import compile_code
+from paths import CONTRACTS_DIR, CORPUS_PATH
 
 # -- 1  Count all n-byte windows, 1 <= n <= 4 ---------------------------
 def _count_windows(data: bytes) -> Dict[int, collections.Counter]:
@@ -175,7 +176,7 @@ def encode_msg(msg: bytes, token_to_code: dict[bytes, int]) -> bytes:
 def deploy_decoder(w3, acct, DICT_BYTES):
     # Deploy the Vyper decoder with the 10240-byte dictionary blob
     from pathlib import Path
-    source = Path("decoder.vy").read_text()
+    source = (CONTRACTS_DIR / "decoder.vy").read_text()
     compiled = compile_code(source, output_formats=["abi", "bytecode"])
     factory = w3.eth.contract(abi=compiled["abi"], bytecode=compiled["bytecode"])
     receipt = w3.eth.wait_for_transaction_receipt(
@@ -188,7 +189,7 @@ def deploy_decoder(w3, acct, DICT_BYTES):
 #  Example usage ---------------------------------------------------------------
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
-    token_to_code, DICT_BYTES, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+    token_to_code, DICT_BYTES, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
     msg = b"Hello, world! This is a test message."
     comp = encode_msg(msg, token_to_code)
 

@@ -12,6 +12,7 @@ import hashlib
 from pathlib import Path
 
 import pytest
+from paths import CONTRACTS_DIR
 from py_ecc.bls.hash_to_curve import hash_to_G2
 from py_ecc.optimized_bls12_381 import normalize
 from web3 import Web3
@@ -43,7 +44,7 @@ def g2_to_bytes(pt) -> bytes:
 
 @pytest.fixture(scope="module")
 def contract():
-    source = Path("signature_registry.vy").read_text()
+    source = (CONTRACTS_DIR / "signature_registry.vy").read_text()
     compiled = compile_code(source, output_formats=["abi", "bytecode"])
     w3 = Web3(EthereumTesterProvider())
     acct = w3.eth.accounts[0]
@@ -80,7 +81,7 @@ def test_distinct_messages(contract):
 
 
 if __name__ == "__main__":
-    source = Path("signature_registry.vy").read_text()
+    source = (CONTRACTS_DIR / "signature_registry.vy").read_text()
     compiled = compile_code(source, output_formats=["abi", "bytecode"])
     w3 = Web3(EthereumTesterProvider())
     acct = w3.eth.accounts[0]

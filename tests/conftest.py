@@ -16,6 +16,7 @@ from web3.providers.eth_tester import EthereumTesterProvider
 from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
+from paths import CORPUS_PATH, CONTRACTS_DIR
 from bpe_encode import build_12bit_dict_from_corpus, deploy_decoder, encode_msg
 from blob_encoder import encode_blob
 
@@ -58,7 +59,7 @@ def accounts(w3):
 @pytest.fixture(scope="session")
 def compression_dict():
     """Build the BPE 12-bit dictionary from corpus.txt."""
-    token_to_code, dict_bytes, dict_offs, dict_len = build_12bit_dict_from_corpus("corpus.txt")
+    token_to_code, dict_bytes, dict_offs, dict_len = build_12bit_dict_from_corpus(str(CORPUS_PATH))
     return token_to_code, dict_bytes, dict_offs, dict_len
 
 
@@ -81,7 +82,7 @@ def decoder(w3, deployer, dict_bytes):
 @pytest.fixture(scope="session")
 def registry(w3, deployer):
     """Deploy signature_registry.vy."""
-    source = Path("signature_registry.vy").read_text()
+    source = (CONTRACTS_DIR / "signature_registry.vy").read_text()
     return deploy(w3, compile_vyper(source), deployer)
 
 

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from data_signer import Signer, aggregate_signatures, verify_signature
 from blob_encoder import encode_blob, signing_payload
-from bpe_encode import build_10bit_dict_from_corpus, encode_msg
+from bpe_encode import build_12bit_dict_from_corpus, encode_msg
 
 
 # ---------------------------------------------------------------------------
@@ -163,10 +163,11 @@ class BAMProvider(ABC):
 class DefaultBAMProvider(BAMProvider):
     """Default provider using the existing Python modules."""
 
-    def __init__(self, corpus_path: str = "corpus.txt"):
-        self._corpus_path = corpus_path
+    def __init__(self, corpus_path: str = None):
+        from paths import CORPUS_PATH
+        self._corpus_path = corpus_path or str(CORPUS_PATH)
         self._token_to_code, self._dict_bytes, self._dict_offs, self._dict_len = (
-            build_10bit_dict_from_corpus(corpus_path)
+            build_12bit_dict_from_corpus(self._corpus_path)
         )
         self._signers: Dict[str, Signer] = {}
 
@@ -251,8 +252,8 @@ class DefaultBAMProvider(BAMProvider):
 
     def decompress(self, data: bytes) -> bytes:
         """Pure-Python BPE decompression (mirrors decoder.vy logic)."""
-        if len(data) % 5 != 0:
-            raise ValueError("encoded data not 5-byte aligned")
+        if len(data) % 3 != 0:
+            raise ValueError("encoded data not 3-byte aligned")
 
         # Build code-to-token reverse lookup
         code_to_token: dict[int, bytes] = {}
@@ -260,13 +261,11 @@ class DefaultBAMProvider(BAMProvider):
             code_to_token[code] = token
 
         out = bytearray()
-        for i in range(0, len(data), 5):
-            word = int.from_bytes(data[i:i + 5], "big")
+        for i in range(0, len(data), 3):
+            word = int.from_bytes(data[i:i + 3], "big")
             codes = [
-                (word >> 30) & 0x3FF,
-                (word >> 20) & 0x3FF,
-                (word >> 10) & 0x3FF,
-                word & 0x3FF,
+                (word >> 12) & 0xFFF,
+                word & 0xFFF,
             ]
             for code in codes:
                 if code == 0:
@@ -279,7 +278,7 @@ class DefaultBAMProvider(BAMProvider):
     def get_dictionary(self) -> DictInfo:
         return DictInfo(
             num_codes=len(self._token_to_code),
-            bits_per_code=10,
+            bits_per_code=12,
             dict_bytes_size=len(self._dict_bytes),
             corpus_path=self._corpus_path,
         )

@@ -11,6 +11,7 @@ from vyper import compile_code
 
 from data_signer import Signer, aggregate_signatures
 from blob_encoder import encode_blob, signing_payload
+from paths import CONTRACTS_DIR, CORPUS_PATH
 from bpe_encode import build_12bit_dict_from_corpus, encode_msg
 
 
@@ -47,19 +48,19 @@ def accounts(w3):
 
 @pytest.fixture(scope="module")
 def bam_core(w3, deployer):
-    source = Path("bam_core.vy").read_text()
+    source = (CONTRACTS_DIR / "bam_core.vy").read_text()
     return deploy_contract(w3, compile_vyper(source), deployer)
 
 
 @pytest.fixture(scope="module")
 def exposer(w3, deployer, bam_core):
-    source = Path("exposer.vy").read_text()
+    source = (CONTRACTS_DIR / "exposer.vy").read_text()
     return deploy_contract(w3, compile_vyper(source), deployer, bam_core.address)
 
 
 @pytest.fixture(scope="module")
 def compression():
-    token_to_code, dict_bytes, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+    token_to_code, dict_bytes, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
     return token_to_code
 
 
@@ -290,7 +291,7 @@ class TestExistingContractsUnmodified:
 
     def test_decoder_decompress_roundtrip(self, w3, deployer):
         from bpe_encode import deploy_decoder
-        token_to_code, dict_bytes, _, _ = build_12bit_dict_from_corpus("corpus.txt")
+        token_to_code, dict_bytes, _, _ = build_12bit_dict_from_corpus(str(CORPUS_PATH))
         dec = deploy_decoder(w3, deployer, dict_bytes)
 
         msg = b"hello world"
@@ -298,7 +299,7 @@ class TestExistingContractsUnmodified:
         assert dec.functions.decompress(compressed).call() == msg
 
     def test_registry_scheme_metadata(self, w3, deployer):
-        source = Path("signature_registry.vy").read_text()
+        source = (CONTRACTS_DIR / "signature_registry.vy").read_text()
         reg = deploy_contract(w3, compile_vyper(source), deployer)
         assert reg.functions.schemeId().call() == 2
         assert reg.functions.schemeName().call() == "BLS12-381"
